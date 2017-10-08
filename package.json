@@ -1,0 +1,42 @@
+{
+  "name": "magicrawler",
+  "version": "0.1.0",
+  "description": "Magic the Gathering data crawler",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "bin": {
+    "magic": "lib/program.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seancheung/magicrawler.git"
+  },
+  "keywords": [
+    "mtg",
+    "crawler",
+    "spider"
+  ],
+  "author": "Sean Cheung",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/seancheung/magicrawler/issues"
+  },
+  "homepage": "https://github.com/seancheung/magicrawler#readme",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "cheerio": "^1.0.0-rc.2",
+    "commander": "^2.11.0",
+    "crawler": "^1.0.5",
+    "inquirer": "^3.3.0",
+    "xmlbuilder": "^9.0.4"
+  },
+  "devDependencies": {
+    "@types/bluebird": "^3.5.14",
+    "@types/commander": "^2.11.0",
+    "@types/node": "^8.0.33",
+    "typescript": "^2.5.3"
+  }
+}
