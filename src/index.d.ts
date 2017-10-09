@@ -24,6 +24,7 @@ declare module 'crawler' {
     class Crawler {
         constructor(options: Options);
         queue(task: Task): void;
+        on(event: string, callback: () => void): void;
     }
     export = Crawler;
 }

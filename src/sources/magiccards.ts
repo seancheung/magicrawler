@@ -58,9 +58,11 @@ export = class Magiccards implements SourceProvider {
         });
     }
     getCards(set: Set, options: any): Promise<Card[]> {
+        const base = this.url;
+
         return new Promise((resolve, reject) => {
             const uri = `${this
-                .url}/query?q=++e:${set.code}/${set.lang}&v=spoiler&s=issue`;
+                .url}/query?q=++e:${set.code}/${set.lang}&v=olist&s=issue`;
             const crawler = new Crawler(options);
             crawler.queue({
                 uri,
@@ -70,27 +72,48 @@ export = class Magiccards implements SourceProvider {
                     } else {
                         const $ = res.$;
                         const cards: Card[] = [];
-                        $('td[valign="top"]').each(function() {
+                        $('tr.odd, tr.even').each(function() {
                             const card = new Card();
-                            card.name = $('span>a', this).text();
-                            card.url = $('span>a', this).attr('href');
-                            card.rarity = $('p>i', this)
-                                .first()
-                                .text();
-                            card.type = $('p', this)
-                                .eq(1)
-                                .text()
-                                .replace(/\s{2,}/, ' ');
-                            card.text = $('p.ctext', this).text();
-                            card.flavor = $('p>i', this)
-                                .eq(1)
-                                .text();
-                            card.artist = $('p', this)
-                                .last()
-                                .text();
+                            let td = $(this)
+                                .children('td')
+                                .first();
+                            card.url = $('a', td).attr('href');
+                            card.name = $('a', td).text();
+                            td = td.next();
+                            card.type = td.text().replace(/\s{2,}/, ' ');
+                            td = td.next();
+                            card.cost = td.text();
+                            td = td.next();
+                            card.rarity = td.text();
+                            td = td.next();
+                            card.artist = td.text();
+                            td = td.next();
                             cards.push(card);
+
+                            crawler.queue({
+                                uri: base + card.url,
+                                callback: (req, res, done) => {
+                                    const $ = res.$;
+                                    card.text = $('p.ctext').text();
+                                    card.flavor = $('p > i').text();
+                                    const link = $('p.ctext')
+                                        .next()
+                                        .next()
+                                        .next()
+                                        .find('a')
+                                        .attr('href');
+                                    const url = require('url');
+                                    card.id = url.parse(
+                                        link,
+                                        true
+                                    ).query.multiverseid;
+                                    done();
+                                }
+                            });
                         });
-                        resolve(cards);
+                        crawler.on('drain', () => {
+                            resolve(cards);
+                        });
                     }
                     done();
                 }
