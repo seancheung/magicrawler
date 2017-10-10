@@ -1,15 +1,20 @@
-import SourceProvider from '../SourceProvider';
-import * as Promise from 'bluebird';
-import Set from '../Set';
-import Card from '../Card';
-import Crawler = require('crawler');
+import {
+    SourceProvider,
+    Set,
+    Card,
+    SetsOptions,
+    CardsOptions,
+    Promise,
+    Crawler
+} from '../';
+import * as _ from 'url';
 
 export = class Magiccards implements SourceProvider {
 
     url: string = 'http://magiccards.info';
     map: string = '/sitemap.html';
 
-    getSets(options: any): Promise<Set[]> {
+    getSets(options: SetsOptions): Promise<Set[]> {
         return new Promise((resolve, reject) => {
             const crawler = new Crawler(options);
             crawler.queue({
@@ -29,23 +34,17 @@ export = class Magiccards implements SourceProvider {
                                         .not($(this).children())
                                         .text();
                                     $('ul>li', this).each(function() {
-                                        const name = $('a', this).text();
-                                        const href = $('a', this).attr('href');
-                                        const code = $('small', this).text();
+                                        const set = new Set();
+                                        set.section = section;
+                                        set.block = block;
+                                        set.name = $('a', this).text();
+                                        set.url = $('a', this).attr('href');
+                                        set.code = $('small', this).text();
                                         const match = /[^\./]+(?=\.html$)/.exec(
-                                            href
+                                            set.url
                                         );
-                                        const lang = (match && match[0]) || '';
-                                        sets.push(
-                                            new Set({
-                                                section,
-                                                block,
-                                                url: href,
-                                                lang,
-                                                name,
-                                                code
-                                            })
-                                        );
+                                        set.lang = (match && match[0]) || '';
+                                        sets.push(set);
                                     });
                                 });
                             });
@@ -57,12 +56,12 @@ export = class Magiccards implements SourceProvider {
             });
         });
     }
-    getCards(set: Set, options: any): Promise<Card[]> {
+    getCards(options: CardsOptions): Promise<Card[]> {
         const base = this.url;
 
         return new Promise((resolve, reject) => {
-            const uri = `${this
-                .url}/query?q=++e:${set.code}/${set.lang}&v=olist&s=issue`;
+            const uri = `${base}/query?q=++e:${options.set.code}/${options.set
+                .lang}&v=olist&s=issue`;
             const crawler = new Crawler(options);
             crawler.queue({
                 uri,
@@ -74,6 +73,7 @@ export = class Magiccards implements SourceProvider {
                         const cards: Card[] = [];
                         $('tr.odd, tr.even').each(function() {
                             const card = new Card();
+                            options.total++;
                             let td = $(this)
                                 .children('td')
                                 .first();
@@ -88,25 +88,29 @@ export = class Magiccards implements SourceProvider {
                             td = td.next();
                             card.artist = td.text();
                             td = td.next();
-                            cards.push(card);
 
                             crawler.queue({
                                 uri: base + card.url,
-                                callback: (req, res, done) => {
-                                    const $ = res.$;
-                                    card.text = $('p.ctext').text();
-                                    card.flavor = $('p > i').text();
-                                    const link = $('p.ctext')
-                                        .next()
-                                        .next()
-                                        .next()
-                                        .find('a')
-                                        .attr('href');
-                                    const url = require('url');
-                                    card.id = url.parse(
-                                        link,
-                                        true
-                                    ).query.multiverseid;
+                                callback: (err, res, done) => {
+                                    if (!err) {
+                                        const $ = res.$;
+                                        card.text = $('p.ctext').text();
+                                        card.flavor = $('p > i').text();
+                                        const link = $('p.ctext')
+                                            .next()
+                                            .next()
+                                            .next()
+                                            .find('a')
+                                            .attr('href');
+                                        card.id = _.parse(
+                                            link,
+                                            true
+                                        ).query.multiverseid;
+                                        cards.push(card);
+                                        options.tasks.push(1);
+                                    } else {
+                                        options.tasks.push(-1);
+                                    }
                                     done();
                                 }
                             });
