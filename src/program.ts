@@ -166,31 +166,24 @@ function install(source: string, code: string, options: InstallOptions): void {
     const ui = new inquirer.ui.BottomBar();
     const frames = ['-', '\\', '|', '/', '-'];
     let index = 0;
-    const update = setInterval(() => {
+    const refresh = () => {
         index++;
         if (index >= frames.length) {
             index = 0;
         }
-        // const bar = opts.tasks
-        //     .map(task => {
-        //         switch (task) {
-        //         case 1:
-        //             return chalk.green('.');
-        //         case -1:
-        //             return chalk.red('.');
-        //         default:
-        //             return '.';
-        //         }
-        //     })
-        //     .join('');
         const per =
             opts.total > 0
                 ? Math.floor(opts.tasks.length / opts.total * 100)
                 : 0;
         const success = opts.tasks.filter(t => t === 1).length;
         const failed = opts.tasks.filter(t => t === -1).length;
-        ui.updateBottomBar(`${frames[index]}\t${opts.total}:${chalk.green(String(success))}+${chalk.red(String(failed))}\t(${per}%)`);
-    }, 100);
+        ui.updateBottomBar(
+            `${frames[index]}\t${opts.total}:${chalk.green(
+                String(success)
+            )}+${chalk.red(String(failed))}\t(${per}%)`
+        );
+    };
+    const update = setInterval(refresh, 100);
 
     provider
         .getCards(opts)
@@ -207,6 +200,8 @@ function install(source: string, code: string, options: InstallOptions): void {
         })
         .finally(() => {
             clearInterval(update);
+            refresh();
+            ui.close();
         });
 }
 
